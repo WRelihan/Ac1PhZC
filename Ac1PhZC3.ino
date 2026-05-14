@@ -1,4 +1,5 @@
 
+#include "secrets.h"
 char version[]="Ac1PhZC3";
 /////////////////////////////////
 ////////  Elegant OTA  //////////
@@ -204,12 +205,12 @@ extern "C" {
 
 #ifdef ACMON2
 
-const char* ssid = "RelihanMesh";
-const char* password = "RelMtp6872#";
+const char* ssid = SECRET_WIFI_SSID;
+const char* password = SECRET_WIFI_PASSWORD;
 IPAddress ip(10,0,0,61);         //CHANGED FROM 151
-IPAddress gateway(10,0,0,254);   
+IPAddress gateway(10,0,0,254);
 IPAddress subnet(255,255,255,0);
-IPAddress DNS(8,8,8,8);      
+IPAddress DNS(8,8,8,8);
 int PortNr=8161;
 
 
@@ -217,8 +218,8 @@ int PortNr=8161;
 #else
 // WiFi Parameters
 
-const char* ssid = "RelihanMesh";
-const char* password = "RelMtp6872#";
+const char* ssid = SECRET_WIFI_SSID;
+const char* password = SECRET_WIFI_PASSWORD;
 IPAddress ip(10,0,0,51);         //CHANGED FROM 151
 IPAddress gateway(10,0,0,254);   
 IPAddress subnet(255,255,255,0);
@@ -232,18 +233,18 @@ int PortNr=8151;
 #define UBServe
 
 #ifdef UBServe
-#define MQTT_HOST IPAddress(10,0,0,80) //MQTT BROKER IP ADDRESS
-#define MQTT_PORT 1884
-#define BROKER_USER "WilUBMos"
-#define BROKER_PASS "WilUBMos68#"
+#define MQTT_HOST SECRET_MQTT_HOST_UBSERVE
+#define MQTT_PORT SECRET_MQTT_PORT_UBSERVE
+#define BROKER_USER SECRET_BROKER_USER_UBSERVE
+#define BROKER_PASS SECRET_BROKER_PASS_UBSERVE
 
 
 #else
 
-#define MQTT_HOST IPAddress(10,0,0,168) //MQTT BROKER IP ADDRESS
-#define MQTT_PORT 1883
-#define BROKER_USER "WilMos"
-#define BROKER_PASS "WilMos68#"
+#define MQTT_HOST SECRET_MQTT_HOST_ALT
+#define MQTT_PORT SECRET_MQTT_PORT_ALT
+#define BROKER_USER SECRET_BROKER_USER_ALT
+#define BROKER_PASS SECRET_BROKER_PASS_ALT
 #endif
 
 //MQTT Topics
