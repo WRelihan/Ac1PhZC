@@ -39,7 +39,8 @@ struct MQTTDATA_T {
 
 extern struct MQTTDATA_T mqttData;
 
-
+extern double Vcal;
+extern double Ical;
 
 
 #endif

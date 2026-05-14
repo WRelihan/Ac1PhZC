@@ -9,6 +9,7 @@ char version[]="Ac1PhZC3";
 
 
 // AC1PhZC3     -  Try to use Github and claude
+//                  update adc channels to corespond to ESP32 Power board
 // AC1PhZC2     -  put interrupt code
 // AC1PhZC1     -  Try to see if hardware interrupt for zero cross works better
 
@@ -399,26 +400,14 @@ int hourAdjVal = (13<<8)/24;
 int hourAdjAcc=0;
 
 
-double Vcal=  0.22441316;  //0.22536768;            //0.22815;              //0.24374749;
-double Ical =  0.010669513*2;   // 0.011307;              //0.009014588;
+
 //double Pcal =  Vcal* Ical;         //0.002588;
 bool TimeOK=0;
 bool webServerStarted = false;
 int AcOnCnt=0;
 
-volatile bool I1toggle;
-
 /////////////////////
 //=========================== FUNCTION DEFINITIONS ====================
-
-
-void IRAM_ATTR I1_ZERO_INT(){
-
-
-
-I1toggle^=1;
-digitalWrite(MON_P23,I1toggle);
-}
 
 
 
@@ -677,10 +666,6 @@ delay(1000);   // wait 1 sec for voltage to become stable
   pinMode(MON_P23,OUTPUT);
   
   pinMode (LED_BUILTIN, OUTPUT);
-  pinMode(I1z,INPUT);
-
-attachInterrupt(I1z,I1_ZERO_INT,RISING);
-
   MqttUp=0;
   emon1.setup();
   emon1.voltage(ANALOG_PIN_3,Vcal);
@@ -689,6 +674,7 @@ attachInterrupt(I1z,I1_ZERO_INT,RISING);
   emon1.wattsec(TIMER_ALM);
   emon1.monpin(MON_P19);
   emon1.freq(FREQ_CAL);
+  emon1.attachZeroCross(I1z, MON_P23);
 
 for(whDaysIndex=0;whDaysIndex<31;whDaysIndex++)
       {
