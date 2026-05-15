@@ -679,7 +679,7 @@ delay(1000);   // wait 1 sec for voltage to become stable
   MqttUp=0;
   emon1.setup();
   emon1.voltage(ANALOG_PIN_3,Vcal);
-  emon1.current(ANALOG_PIN_0,Ical);
+  emon1.current(ANALOG_PIN_0,Ical,2020);
   //emon1.power(Pcal);
   emon1.wattsec(TIMER_ALM);
   emon1.monpin(MON_P19);
@@ -802,7 +802,8 @@ Serial.printf("\n Vac: %.2f", supplyVoltage);
 Serial.printf(" Iac:  %.2f" ,Irms  );
 Serial.printf(" P:  %.2f" ,realpower  );
 Serial.printf(" WHT:  %.2f" ,WHourT  );
-
+Serial.printf(" Vofst:  %d" ,emon1.getOffsetV()  );
+Serial.printf(" Iofst:  %d" ,emon1.getOffsetI()  );
 ///--------------  Copy measurements to data strcuture ------------
 portENTER_CRITICAL(&mqttMux);
 MsgOK=1;      // should be ok, calculated values complete ????

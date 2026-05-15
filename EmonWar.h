@@ -16,8 +16,10 @@ class EMonitor
 {
 public:
 void setup(void);
-void voltage(unsigned int _inPinV,double _VCAL);
-void current(unsigned int _inPinI,double _ICAL);
+void voltage(unsigned int _inPinV, double _VCAL, int _offsetV = ADC_COUNTS>>1);
+void current(unsigned int _inPinI, double _ICAL, int _offsetI = ADC_COUNTS>>1);
+int getOffsetV() { return offsetV; }
+int getOffsetI() { return offsetI; }
 void wattsec(int _TSUS);
 void power(double _PCAL);
 void monpin(unsigned int _Mon1);

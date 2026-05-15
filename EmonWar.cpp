@@ -47,20 +47,20 @@ adc1_config_width(ADC_WIDTH_BIT_12);
 }
 
 
-void EMonitor::voltage(unsigned int _inPinV,double _VCAL)
+void EMonitor::voltage(unsigned int _inPinV, double _VCAL, int _offsetV)
 {
   inPinV = _inPinV;
   VCAL = _VCAL;
-  offsetV = ADC_COUNTS>>1;
-  
+  offsetV = _offsetV;
+  offsetVQ15 = _offsetV << 4;
 }
 
-void EMonitor::current(unsigned int _inPinI,double _ICAL)
+void EMonitor::current(unsigned int _inPinI, double _ICAL, int _offsetI)
 {
-  inPinI=_inPinI;
-  ICAL=_ICAL;
-  offsetI=ADC_COUNTS>>1;
-  
+  inPinI = _inPinI;
+  ICAL = _ICAL;
+  offsetI = _offsetI;
+  offsetIQ15 = _offsetI << 4;
 }
 
 void EMonitor::wattsec(int _TSUS)
