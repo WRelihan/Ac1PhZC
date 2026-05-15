@@ -1,6 +1,8 @@
 
 #include "secrets.h"
-char version[]="Ac1PhZC3";
+//char version[]="Ac1PhZC3";
+
+#include "version.h"
 /////////////////////////////////
 ////////  Elegant OTA  //////////
 ////  10.0.0.1xxx:8xxx/update ///
