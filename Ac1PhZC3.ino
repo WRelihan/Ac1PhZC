@@ -791,6 +791,8 @@ else sprintf(AcSTR,"Off");
 
 
 Serial.printf("\n Vac: %.2f", supplyVoltage);
+Serial.printf(" Iac:  %.2f" ,Irms  );
+Serial.printf(" P:  %.2f" ,realpower  );
 Serial.printf(" WHT:  %.2f" ,WHourT  );
 
 ///--------------  Copy measurements to data strcuture ------------
