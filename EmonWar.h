@@ -23,9 +23,11 @@ void power(double _PCAL);
 void monpin(unsigned int _Mon1);
 void freq(double _FCAL);
 void getWaveform(int16_t *vOut, int16_t *iOut, double &vcal, double &ical);
+void attachZeroCross(unsigned int pin, unsigned int debugPin);
 
 volatile bool captureReq  = false;  // sketch sets this to trigger
 volatile bool captureDone = false;  // sketch polls this to know when ready
+volatile bool ac_posI     = false;  // set by zero-cross ISR: true = positive half-cycle
 
 //void sendWaveform(PubSubClient &mqtt);  // handles scaling internally
 
@@ -45,8 +47,10 @@ long Whour=0;         // Whour in Q20.12 format i.e 20bits + 12bits fractional
 
 private:
 
-
-
+static EMonitor* _instance;
+static void IRAM_ATTR _zeroCrossISR();
+unsigned int _zeroCrossPin;
+unsigned int _zeroCrossDebugPin;
 
 //int Adc1_get_raw(adc1_channel_t channel);
 int ADcal(int ADinput);
@@ -76,8 +80,6 @@ int offsetI;
 int offsetIQ15 = ADC_COUNTS<<3;
 signed int filtered_V,filtered_I;
 
-bool ac_Pos =0;
-bool st = 0;      // wait for zero cross to start 
 int sampleCnt,sampleCntmem=0;    // count nr of samples
 int zcCount=0;
 unsigned long sqV,sqVmem,sqI,sqImem = 0;

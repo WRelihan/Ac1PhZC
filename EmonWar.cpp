@@ -5,6 +5,23 @@
 #include "EmonWar.h"
 #include <driver/adc.h>
 
+EMonitor* EMonitor::_instance = nullptr;
+
+void IRAM_ATTR EMonitor::_zeroCrossISR() {
+    if (_instance) {
+        _instance->ac_posI = digitalRead(_instance->_zeroCrossPin);
+        digitalWrite(_instance->_zeroCrossDebugPin, _instance->ac_posI);
+    }
+}
+
+void EMonitor::attachZeroCross(unsigned int pin, unsigned int debugPin) {
+    _instance = this;
+    _zeroCrossPin = pin;
+    _zeroCrossDebugPin = debugPin;
+    pinMode(pin, INPUT);
+    attachInterrupt(pin, _zeroCrossISR, CHANGE);
+}
+
 
 //------------------------------------------------
 // Set Pins for voltage and current sensors
@@ -23,8 +40,8 @@ void EMonitor::setup(void)
 
 adc1_config_width(ADC_WIDTH_BIT_12);
 //adc2_config_width(ADC_WIDTH_BIT_12);
- adc1_config_channel_atten(ADC1_CHANNEL_0,ADC_ATTEN_DB_11);
- adc1_config_channel_atten(ADC1_CHANNEL_3,ADC_ATTEN_DB_11);
+ adc1_config_channel_atten(ADC1_CHANNEL_4,ADC_ATTEN_DB_11);
+ adc1_config_channel_atten(ADC1_CHANNEL_7,ADC_ATTEN_DB_11);
  //adc1_config_channe2_atten(ADC2_CHANNEL_8,ADC_ATTEN_DB_11);
  
 }
@@ -89,10 +106,10 @@ void EMonitor::calcVI()
 
  // digitalWrite(monPin1,HIGH);
  //  sample_I=ADcal(analogRead(inPinI));
-    sample_I=ADcal(adc1_get_raw(ADC1_CHANNEL_0));
+    sample_I=ADcal(adc1_get_raw(ADC1_CHANNEL_4));
    // sample_V=ADcal(analogRead(inPinV));
   // sample_V=ADcal(adc2_get_raw(ADC2_CHANNEL_8));
-   sample_V=ADcal(adc1_get_raw(ADC1_CHANNEL_3));
+   sample_V=ADcal(adc1_get_raw(ADC1_CHANNEL_7));
  // digitalWrite(monPin1,LOW);  
  // digitalWrite(MON_P22,LOW);
     //offsetV = offsetV + ((sample_V-offsetV)/1024);
@@ -108,55 +125,25 @@ void EMonitor::calcVI()
 
 
         
-    if(ac_Pos)
+    if(ac_posI && !lastACPos)             // rising edge: negative to positive transition
         {
-         if( sample_V<=offsetV)      // Pos v to Neg v transition
+        if(sampleCnt<100) zcCount++;
+        else if(sampleCnt>100)
             {
-            ac_Pos=0;
-            
-            }
-      //   digitalWrite(monPin1,LOW);
-         
-         
-        }
-    else
-        {
-         if( sample_V>=offsetV) // transition neg V to pos V
-         if(sampleCnt<100) zcCount++;
-         else if(sampleCnt>100)
-            {
-            ac_Pos=1;
             sqVmem = sqV;
             sqV = 0;
             sqImem=sqI;
             sqI=0;
             sumPmem=sumP;
             sumP=0;
-           // Vpkpmem=Vpkp;
-           // Vpkp=0;
-           // Vpknmem=Vpkn;
-           // Vpkn=ADC_COUNTS;
             sampleCntmem=sampleCnt;
             sumSample+=sampleCnt;
-     /*       
-            Serial.print(zcCount);
-            Serial.print(" sqV: ");
-            Serial.print(sqVmem);
-            Serial.println();
-    */
-           // Serial.print(sampleCnt);
-          //  Serial.print("  ");
             sampleCnt=0;
- 
-            if(zcCount>5 || sqVmem < 10000)NoMains=1;       // check for multiple zerocross i.e No Mains 
+            if(zcCount>5 || sqVmem < 10000)NoMains=1;
             else NoMains=0;
-          //  NoMains=0;
             zcCount=0;
             cycleDone=1;
-            
             }
-      //   digitalWrite(monPin1,HIGH);
-         
         }
     sampleCnt++;
 ////==========================================  sample a v & I  waveform here ============================
@@ -174,7 +161,7 @@ switch(captureState)
         break;
 
     case WAITING_ZC:
-        if(ac_Pos && !lastACPos)              // transition 0->1 just happened
+        if(ac_posI && !lastACPos)             // rising edge: start capture
         {
             waveIdx      = 0;
             captureState = CAPTURING;
@@ -193,7 +180,7 @@ switch(captureState)
         }
         break;
 } 
-lastACPos = ac_Pos;     // update at end of calcVI(), after switch
+lastACPos = ac_posI;
 
 
 //=================================================================
