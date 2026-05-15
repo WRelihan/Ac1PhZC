@@ -254,12 +254,17 @@ int PortNr=8151;
 #ifdef ACMON2
 #define MQTT_MNS_JSON "MNS2/JSON"
 #define MQTT_WAVE_JSON "MNS2/WAVE"
+#define MQTT_PUB_SUB_RST "MNS2/RST"
+#define MQTT_PUB_SUB_WVR "MNS2/WVR"
+
+
 #else
 
 #define MQTT_MNS_JSON "MNS/JSON"
 #define MQTT_WAVE_JSON "MNS/WAVE"
+#define MQTT_PUB_SUB_RST "MNS/RST"
+#define MQTT_PUB_SUB_WVR "MNS/WVR"
 #endif
-
 
 
 
@@ -516,11 +521,14 @@ uint16_t packetIdSub;
    // packetIdSub = mqttClient.subscribe("HTR/TMR", 2);   /// Reset pump timeout
    // packetIdSub = mqttClient.subscribe("HTR/RST", 2);   /// Reset pump timeout
    // packetIdSub = mqttClient.subscribe("HTR/LVL", 2);   /// Heater Level
-   packetIdSub = mqttClient.subscribe("MNS/RST", 2);
-   packetIdSub = mqttClient.subscribe("MNS/WVR", 2);
+   packetIdSub = mqttClient.subscribe(MQTT_PUB_SUB_RST, 2);
+   packetIdSub = mqttClient.subscribe(MQTT_PUB_SUB_WVR, 2);
  // Serial.print("Subscribing at QoS 2, packetId: ");
  // Serial.println(packetIdSub);
 }
+
+
+
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
   Serial.println("Disconnected from MQTT.");
@@ -574,7 +582,7 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
   }
   Serial.println();
   // Turn the LED on or off accordingly to the message content
-  if (strcmp(topic, "MNS/RST") == 0) 
+  if (strcmp(topic, MQTT_PUB_SUB_RST) == 0) 
   {
 
   if (receivedMessage == "Reset"){
@@ -585,7 +593,7 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
   
   }
 
-if (strcmp(topic, "MNS/WVR") == 0) {
+if (strcmp(topic, MQTT_PUB_SUB_WVR) == 0) {
     if (receivedMessage == "true"){
       //digitalWrite(LED_BUILTIN, HIGH);
       emon1.captureReq=true;
