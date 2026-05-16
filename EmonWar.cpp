@@ -5,6 +5,10 @@
 #include "EmonWar.h"
 #include <driver/adc.h>
 
+#include "soc/sens_reg.h"
+#include "soc/sens_struct.h"
+
+
 EMonitor* EMonitor::_instance = nullptr;
 
 void IRAM_ATTR EMonitor::_zeroCrossISR() {
@@ -101,27 +105,76 @@ void EMonitor::freq(double _FCAL)
   FCAL= _FCAL;
 }
 
-void EMonitor::calcVI()
+void IRAM_ATTR EMonitor::calcVI()
 {
 
- // digitalWrite(monPin1,HIGH);
- //  sample_I=ADcal(analogRead(inPinI));
-    sample_I=ADcal(adc1_get_raw(ADC1_CHANNEL_4));
-   // sample_V=ADcal(analogRead(inPinV));
-  // sample_V=ADcal(adc2_get_raw(ADC2_CHANNEL_8));
-   sample_V=ADcal(adc1_get_raw(ADC1_CHANNEL_7));
- // digitalWrite(monPin1,LOW);  
- // digitalWrite(MON_P22,LOW);
-    //offsetV = offsetV + ((sample_V-offsetV)/1024);
-    
-    offsetVQ15=offsetVQ15 +(((sample_V<<4)-offsetVQ15)/1024);
-    offsetV = offsetVQ15>>4;
-    filtered_V = sample_V-offsetV;  
-    
-    offsetIQ15=offsetIQ15 +(((sample_I<<4)-offsetIQ15)/1024);
-    offsetI = offsetIQ15>>4;
-    filtered_I = sample_I-offsetI;
-   
+ // Step 1 - blocking V sample on channel 7
+    sample_V = ADcal(adc1_get_raw(ADC1_CHANNEL_7));
+
+// Step 2 - set attenuation and trigger I conversion on channel 4
+/*
+SENS.sar_atten1 = (SENS.sar_atten1 & ~(0x3 << (ADC1_CHANNEL_4 * 2))) 
+                 | (ADC_ATTEN_DB_11 << (ADC1_CHANNEL_4 * 2));
+SENS.sar_meas_start1.sar1_en_pad = (1 << ADC1_CHANNEL_4);
+SENS.sar_meas_start1.meas1_start_sar = 1;
+*/
+// Set attenuation for this channel
+    uint32_t atten_reg = SENS.sar_atten1;
+    atten_reg &= ~(0x3 << (ADC1_CHANNEL_4 * 2));        // clear 2 bits for this channel
+    atten_reg |=  (ADC_ATTEN_DB_11 << (ADC1_CHANNEL_4 * 2));       // set new attenuation
+    SENS.sar_atten1 = atten_reg;
+
+
+    // Select channel
+
+    SENS.sar_meas_start1.sar1_en_pad = (1 << ADC1_CHANNEL_4);
+
+// Give mux and capacitor time to settle
+    // At 80MHz each nop is ~12.5ns, 20 nops = ~250ns
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+ __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+while (SENS.sar_slave_addr1.meas_status != 0); // wait until idle
+
+ // Trigger conversion
+    SENS.sar_meas_start1.meas1_start_sar = 0;
+    SENS.sar_meas_start1.meas1_start_sar = 1;
+    // returns immediately - conversion running in background
+
+
+
+    // Step 3 - do V calcs while I is converting
+    offsetVQ15 = offsetVQ15 + (((sample_V<<4) - offsetVQ15) / 1024);
+    offsetV    = offsetVQ15 >> 4;
+    filtered_V = sample_V - offsetV;
+
+  // Step 4 - wait for I conversion with timeout
+  /*
+    int timeout = 1000;
+    while(SENS.sar_meas_start1.meas1_done_sar == 0 && --timeout > 0);
+    if(timeout == 0) sample_I = offsetI;    // safe fallback
+    else sample_I = ADcal(SENS.sar_meas_start1.meas1_data_sar);
+*/
+ while (SENS.sar_meas_start1.meas1_done_sar == 0); // wait for done
+   sample_I=ADcal(SENS.sar_meas_start1.meas1_data_sar);
+
+
+//int raw_register = SENS.sar_meas_start1.meas1_data_sar;
+//int raw_driver   = adc1_get_raw(ADC1_CHANNEL_4);
+//Serial.printf("REG: %d  DRV: %d\n", raw_register, raw_driver);
+//Serial.printf(" %d", sample_I);
+
+   // sample_I = ADcal(adc1_get_raw(ADC1_CHANNEL_4));
+
+    // Step 5 - I calcs
+    offsetIQ15 = offsetIQ15 + (((sample_I<<4) - offsetIQ15) / 1024);
+    offsetI    = offsetIQ15 >> 4;
+    filtered_I = sample_I - offsetI;
 
 
         
@@ -380,7 +433,7 @@ void EMonitor::getWaveform(int16_t *vOut, int16_t *iOut, double &vcal, double &i
 
 
 
-int EMonitor::ADcal(int ADinput)
+int IRAM_ATTR EMonitor::ADcal(int ADinput)
 {
 long TempLong;
 TempLong= long(ADinput);

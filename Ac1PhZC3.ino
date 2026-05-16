@@ -192,6 +192,9 @@ extern "C" {
 #include <AsyncMqttClient.h>
 #include <ArduinoJson.h>
 
+#include "soc/sens_reg.h"
+#include "soc/sens_struct.h"
+
 //#include <ESP8266WiFiMulti.h>
 //#include <WiFiClient.h>
 //#include <WebServer.h>
@@ -475,7 +478,7 @@ void onWifiConnect(WiFiEvent_t event, WiFiEventInfo_t info) {
     if (!webServerStarted) {
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) 
     {
-        std::string responseMessage = "Hi! I am ESP32:" + std::string(version);  
+        std::string responseMessage = "Hi! I am ESP32:" + std::string(VERSION);  
         request->send(200, "text/plain", responseMessage.c_str());
     });
 
@@ -735,6 +738,11 @@ xTaskCreatePinnedToCore(
 );
 
  UPDATING=0;
+
+Serial.printf("sample_num:   %d\n", SENS.sar_read_ctrl.sar1_sample_num);
+Serial.printf("sample_cycle: %d\n", SENS.sar_read_ctrl.sar1_sample_cycle);
+
+
 }     // end of Setup
 
 
@@ -744,7 +752,7 @@ void loop()
 {
   int tempInt;
   long tempLong,tempLongZ;
-
+  int adc_Idf,adc_rw;
  TmrLoop();
  
 //----------------------------------Code Runs every Sample time --------------
@@ -761,6 +769,54 @@ if(lastSec!=clocktime.sec)
   {
     lastSec=clocktime.sec;
     toggle^=1;
+
+
+
+  adc_rw=adc1_get_raw(ADC1_CHANNEL_4);
+
+  Serial.printf("\n%d,",adc_rw);
+
+
+// Set attenuation for this channel
+    uint32_t atten_reg = SENS.sar_atten1;
+    atten_reg &= ~(0x3 << (ADC1_CHANNEL_4 * 2));        // clear 2 bits for this channel
+    atten_reg |=  (ADC_ATTEN_DB_11 << (ADC1_CHANNEL_4 * 2));       // set new attenuation
+    SENS.sar_atten1 = atten_reg;
+
+
+    // Select channel
+
+    SENS.sar_meas_start1.sar1_en_pad = (1 << ADC1_CHANNEL_4);
+
+// Give mux and capacitor time to settle
+    // At 80MHz each nop is ~12.5ns, 20 nops = ~250ns
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+ __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+    __asm__ __volatile__("nop;nop;nop;nop;nop;nop;nop;nop;nop;nop;");
+while (SENS.sar_slave_addr1.meas_status != 0); // wait until idle
+
+ // Trigger conversion
+    SENS.sar_meas_start1.meas1_start_sar = 0;
+    SENS.sar_meas_start1.meas1_start_sar = 1;
+    // returns immediately - conversion running in background
+
+  
+
+ while (SENS.sar_meas_start1.meas1_done_sar == 0); // wait for done
+   adc_Idf=SENS.sar_meas_start1.meas1_data_sar;
+
+Serial.printf("%d",adc_Idf);
+
+
+
+
+
+
     
  //---------------------------  Do critical calculations first -----------------------   
       
@@ -797,13 +853,15 @@ if(lastSec!=clocktime.sec)
 if(AConNow)sprintf(AcSTR,"On");
 else sprintf(AcSTR,"Off");
 
-
+/*
 Serial.printf("\n Vac: %.2f", supplyVoltage);
 Serial.printf(" Iac:  %.2f" ,Irms  );
 Serial.printf(" P:  %.2f" ,realpower  );
 Serial.printf(" WHT:  %.2f" ,WHourT  );
 Serial.printf(" Vofst:  %d" ,emon1.getOffsetV()  );
 Serial.printf(" Iofst:  %d" ,emon1.getOffsetI()  );
+Serial.printf(" att: %d ", ADC_ATTEN_DB_11);
+*/
 ///--------------  Copy measurements to data strcuture ------------
 portENTER_CRITICAL(&mqttMux);
 MsgOK=1;      // should be ok, calculated values complete ????
@@ -904,7 +962,7 @@ void MQTTUPDATE(MQTTDATA_T d)
 
   doc["device"] = "DB";
   //doc["sensorType"] = "VIL";
-  doc["Ver"] = version;
+  doc["Ver"] = VERSION;
                               //doc["V1"] = (int)(round(supplyVoltage*100));
   doc["V1"] = VarsFilt.V1/VarsFilt.count;
                               //doc["V1"] = stringTmp;
@@ -951,7 +1009,7 @@ void MQTTUPDATE(MQTTDATA_T d)
 
   VarsFilt = {};  // reset cleanly
 
-  Serial.print(".");
+ // Serial.print(".");
 }
 
 

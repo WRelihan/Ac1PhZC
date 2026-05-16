@@ -35,7 +35,7 @@ volatile bool ac_posI     = false;  // set by zero-cross ISR: true = positive ha
 
 
 
-void calcVI();
+void IRAM_ATTR calcVI();
 void cycleCalc();
 void serialprint();
 // Useful value variables
@@ -55,7 +55,7 @@ unsigned int _zeroCrossPin;
 unsigned int _zeroCrossDebugPin;
 
 //int Adc1_get_raw(adc1_channel_t channel);
-int ADcal(int ADinput);
+int IRAM_ATTR ADcal(int ADinput);
 
 //Set Voltage and Current input pins
 unsigned int inPinV;

@@ -53,7 +53,7 @@ void IRAM_ATTR onTimer() {
   if(UPDATING==0)
     {
     digitalWrite(MON_P22,HIGH);
-    emon1.calcVI();
+  //  emon1.calcVI();
     digitalWrite(MON_P22,LOW);   
     }
   portEXIT_CRITICAL_ISR(&timerMux);
