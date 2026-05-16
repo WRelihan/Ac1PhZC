@@ -475,7 +475,7 @@ void onWifiConnect(WiFiEvent_t event, WiFiEventInfo_t info) {
     if (!webServerStarted) {
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) 
     {
-        std::string responseMessage = "Hi! I am ESP32:" + std::string(version);  
+        std::string responseMessage = "Hi! I am ESP32:" + std::string(VERSION);  
         request->send(200, "text/plain", responseMessage.c_str());
     });
 
@@ -904,7 +904,7 @@ void MQTTUPDATE(MQTTDATA_T d)
 
   doc["device"] = "DB";
   //doc["sensorType"] = "VIL";
-  doc["Ver"] = version;
+  doc["Ver"] = VERSION;
                               //doc["V1"] = (int)(round(supplyVoltage*100));
   doc["V1"] = VarsFilt.V1/VarsFilt.count;
                               //doc["V1"] = stringTmp;
